@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 
-from .models import User
+from .models import User, Tag
 
 
 @admin.register(User)
@@ -32,3 +32,10 @@ class UserAdmin(BaseUserAdmin):
             'description': ('User\'s status'),
         }),
     )
+
+
+@admin.register(Tag)
+class TagAdmin(admin.ModelAdmin):
+    ordering = ['name']
+    search_fields = ['name', ]
+    sortable_by = ['name', 'user', ]

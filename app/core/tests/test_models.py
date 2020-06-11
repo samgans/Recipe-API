@@ -1,6 +1,8 @@
 from django.test import TestCase
 from django.contrib.auth import get_user_model
 
+from core.models import Tag
+
 
 class ModelTests(TestCase):
 
@@ -20,6 +22,7 @@ class ModelTests(TestCase):
         )
 
         self.assertEqual(user.email, email)
+        self.assertEqual(user.name, name)
         self.assertTrue(user.check_password(password))
 
     def test_mail_validation(self):
@@ -64,3 +67,22 @@ class ModelTests(TestCase):
             and user.is_superuser
             and user.is_staff
         )
+
+        def test_tag_created(self):
+            '''
+            Tests if the tag has been created and has a valid
+            string representation
+            '''
+            user = get_user_model().objects.create_user(
+                email=email,
+                password=password,
+                name=name,
+            )
+
+            data = {'owner': user, 'name': 'New Tag'}
+
+            tag = Tag.objects.create(**data)
+
+            self.assertIn(tag, Tag.objects.all())
+            self.assertEqual(tag, Tag.objects.get(**data))
+            self.assertEqual(data['name'], str(tag))
