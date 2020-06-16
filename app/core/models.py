@@ -52,9 +52,37 @@ class User(AbstractBaseUser, PermissionsMixin):
 class Tag(models.Model):
     '''Custom user tags for food'''
     owner = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.CASCADE
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
     )
     name = models.CharField(max_length=255)
 
     def __str__(self):
         return self.name
+
+
+class Ingredient(models.Model):
+    '''Recipe ingredients'''
+    owner = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+    )
+    name = models.CharField(max_length=255)
+
+    def __str__(self):
+        return self.name
+
+
+class Recipe(models.Model):
+    '''Recipe model linking the ingredients together'''
+    owner = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE
+    )
+    title = models.CharField(max_length=255)
+    tags = models.ManyToManyField(Tag)
+    ingredients = models.ManyToManyField(Ingredient)
+    price = models.DecimalField(max_digits=5, decimal_places=2)
+
+    def __str__(self):
+        return self.title

@@ -1,7 +1,20 @@
 from django.test import TestCase
 from django.contrib.auth import get_user_model
 
-from core.models import Tag
+from core.models import Tag, Ingredient, Recipe
+
+
+def create_user_model(**kwargs):
+
+    payload = {
+        'email': 'testcasemail@gmail.com',
+        'password': 'testpassword1',
+        'name': 'Lora Palmer',
+    }
+
+    payload.update(**kwargs)
+
+    return get_user_model().objects.create_user(**payload)
 
 
 class ModelTests(TestCase):
@@ -15,6 +28,7 @@ class ModelTests(TestCase):
         email = 'testcasemail@gmail.com'
         password = 'testpassword1'
         name = 'Lora Palmer'
+
         user = get_user_model().objects.create_user(
             email=email,
             password=password,
@@ -29,12 +43,9 @@ class ModelTests(TestCase):
         '''Test validates that mail suffix is made .lower() by python'''
 
         email = 'testcasemail@GMAIL.cOm'
-        password = 'testpassword1'
-        name = 'Lora Palmer'
-        user = get_user_model().objects.create_user(
+
+        user = create_user_model(
             email=email,
-            password=password,
-            name=name,
         )
 
         self.assertEqual(user.email, email.lower())
@@ -56,6 +67,7 @@ class ModelTests(TestCase):
         email = 'testcasemail@GMAIL.cOm'
         password = 'testpassword1'
         name = 'Lora Palmer'
+
         user = get_user_model().objects.create_superuser(
             email=email,
             password=password,
@@ -68,21 +80,48 @@ class ModelTests(TestCase):
             and user.is_staff
         )
 
-        def test_tag_created(self):
-            '''
-            Tests if the tag has been created and has a valid
-            string representation
-            '''
-            user = get_user_model().objects.create_user(
-                email=email,
-                password=password,
-                name=name,
-            )
+    def test_tag_created(self):
+        '''
+        Tests if the tag has been created and has a valid
+        string representation
+        '''
+        user = create_user_model()
+        data = {'owner': user, 'name': 'New Tag'}
 
-            data = {'owner': user, 'name': 'New Tag'}
+        tag = Tag.objects.create(**data)
 
-            tag = Tag.objects.create(**data)
+        self.assertIn(tag, Tag.objects.all())
+        self.assertEqual(tag, Tag.objects.get(**data))
+        self.assertEqual(data['name'], str(tag))
 
-            self.assertIn(tag, Tag.objects.all())
-            self.assertEqual(tag, Tag.objects.get(**data))
-            self.assertEqual(data['name'], str(tag))
+    def test_ingredient_created(self):
+        '''
+        Tests if the ingredient has been created and has
+        a valid string representation
+        '''
+        user = create_user_model()
+
+        data = {'owner': user, 'name': 'Cabbage'}
+        ingredient = Ingredient.objects.create(**data)
+
+        self.assertIn(ingredient, Ingredient.objects.all())
+        self.assertEqual(
+            ingredient, Ingredient.objects.get(**data)
+        )
+        self.assertEqual(data['name'], str(ingredient))
+
+    def test_recipe_model(self):
+        '''
+        Tests if the recipe model is created and has a valid string
+        representation
+        '''
+        user = create_user_model()
+
+        recipe = Recipe.objects.create(
+            owner=user,
+            title='New Recipe',
+            price=5,
+        )
+
+        self.assertIn(recipe, Recipe.objects.all())
+        self.assertEqual(str(recipe), 'New Recipe')

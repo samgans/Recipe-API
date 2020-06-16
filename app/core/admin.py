@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 
-from .models import User, Tag
+from .models import User, Tag, Ingredient
 
 
 @admin.register(User)
@@ -34,8 +34,17 @@ class UserAdmin(BaseUserAdmin):
     )
 
 
-@admin.register(Tag)
-class TagAdmin(admin.ModelAdmin):
+class RecepyAttrBaseAdmin(admin.ModelAdmin):
     ordering = ['name']
     search_fields = ['name', ]
-    sortable_by = ['name', 'user', ]
+    sortable_by = ['name', 'owner', ]
+
+
+@admin.register(Tag)
+class TagAdmin(RecepyAttrBaseAdmin):
+    ordering = ['-name']
+
+
+@admin.register(Ingredient)
+class IngredientAdmin(RecepyAttrBaseAdmin):
+    search_fields = ['name', 'owner', ]

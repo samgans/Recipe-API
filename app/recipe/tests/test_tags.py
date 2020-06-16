@@ -9,7 +9,6 @@ from core.models import Tag
 from recipe.serializers import TagSerializer
 
 TAG_URL = reverse('recipe:tags-list')
-TAG_CREATE_URL = reverse('recipe:tags-list')
 
 
 def create_user(email='testmail@gmail.com', password='testpassword',
@@ -35,7 +34,7 @@ class PublicInteraction(TestCase):
 
     def test_cant_create_tag(self):
         '''Tests that anonymous user can't create the tag'''
-        res = self.client.post(TAG_CREATE_URL)
+        res = self.client.post(TAG_URL)
 
         self.assertEqual(res.status_code, status.HTTP_401_UNAUTHORIZED)
 
@@ -81,7 +80,7 @@ class PrivateInteraction(TestCase):
         Tests if the tag can be created and the data
         in this new tag matches the data of the request
         '''
-        res = self.client.post(TAG_CREATE_URL, {'name': 'Vegan'})
+        res = self.client.post(TAG_URL, {'name': 'Vegan'})
         tag = Tag.objects.all().filter(name='Vegan', owner=self.user)
 
         self.assertEqual(res.status_code, status.HTTP_201_CREATED)
@@ -90,8 +89,6 @@ class PrivateInteraction(TestCase):
 
     def test_invalid_tag_data(self):
         '''Tests if the tag is created when invalid data provided'''
-        res = self.client.post(TAG_CREATE_URL, {'name': ''})
+        res = self.client.post(TAG_URL, {'name': ''})
 
         self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
-
-
