@@ -1,7 +1,11 @@
+from unittest.mock import patch
+import uuid
+
 from django.test import TestCase
 from django.contrib.auth import get_user_model
 
-from core.models import Tag, Ingredient, Recipe
+from core.models import Tag, Ingredient, \
+                        Recipe, create_image_unique_name
 
 
 def create_user_model(**kwargs):
@@ -125,3 +129,13 @@ class ModelTests(TestCase):
 
         self.assertIn(recipe, Recipe.objects.all())
         self.assertEqual(str(recipe), 'New Recipe')
+
+    @patch('uuid.uuid4')
+    def test_image_upload(self, mock_uuid):
+        '''Tests if the image uploaded has a custom unique name'''
+        return_uuid = 'test_image'
+        mock_uuid.return_value = return_uuid
+        back_value = create_image_unique_name(None, 'image.jpg')
+        expected_value = f'uploaded/recipe/{return_uuid}.jpg'
+
+        self.assertEqual(back_value, expected_value)

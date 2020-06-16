@@ -1,8 +1,18 @@
+import os
+import uuid
+
 from django.db import models
 from django.contrib.auth.models import (
     AbstractBaseUser, BaseUserManager, PermissionsMixin
 )
 from django.conf import settings
+
+
+def create_image_unique_name(instance, filename):
+    suffix = filename.split('.')[-1]
+    random_name = uuid.uuid4()
+    filename = f'{random_name}.{suffix}'
+    return os.path.join('uploaded/recipe/', filename)
 
 
 class UserManager(BaseUserManager):
@@ -83,6 +93,7 @@ class Recipe(models.Model):
     tags = models.ManyToManyField(Tag)
     ingredients = models.ManyToManyField(Ingredient)
     price = models.DecimalField(max_digits=5, decimal_places=2)
+    image = models.ImageField(upload_to=create_image_unique_name, null=True)
 
     def __str__(self):
         return self.title
