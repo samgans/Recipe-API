@@ -5,10 +5,22 @@ from django.urls import reverse
 from rest_framework.test import APIClient
 from rest_framework import status
 
-from core.models import Ingredient
+from core.models import Ingredient, Recipe
 from recipe.serializers import IngredientSerializer
 
 INGREDIENT_URL = reverse('recipe:ingredients-list')
+
+
+def create_recipe(user, **kwargs):
+
+    payload = {
+        'title': 'Test',
+        'price': 5.00,
+        'owner': user,
+    }
+    payload.update(kwargs)
+
+    return Recipe.objects.create(**payload)
 
 
 def create_new_user(email, name, password):
@@ -95,3 +107,66 @@ class PrivateInteraction(TestCase):
         res = self.client.post(INGREDIENT_URL, {'name': ''})
 
         self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_can_filter_ingredients_by_recipe(self):
+        '''
+        Tests if the user can retrieve the ingredients assigned to recepies
+        '''
+        ingredient_1 = create_ingredient(self.user, 'One')
+        ingredient_2 = create_ingredient(self.user, 'Two')
+        ingredient_3 = create_ingredient(self.user, 'Three')
+
+        recipe = create_recipe(self.user)
+        recipe.ingredients.add(ingredient_1, ingredient_2)
+        serializer_1 = IngredientSerializer(
+            [ingredient_2, ingredient_1],
+            many=True
+        )
+        serializer_2 = IngredientSerializer(ingredient_3)
+
+        res = self.client.get(INGREDIENT_URL, {'assigned': '1'})
+
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertEqual(serializer_1.data, res.data)
+        self.assertNotIn(serializer_2.data, res.data)
+
+    def test_can_filter_ingrs_without_recipe(self):
+        '''
+        Tests if the user can retrieve ingredients which are not assigned
+        to any recepies
+        '''
+        ingredient_1 = create_ingredient(self.user, 'One')
+        ingredient_2 = create_ingredient(self.user, 'Two')
+        ingredient_3 = create_ingredient(self.user, 'Three')
+
+        recipe = create_recipe(self.user)
+        recipe.ingredients.add(ingredient_1, ingredient_2)
+        serializer_1 = IngredientSerializer(
+            [ingredient_2, ingredient_1],
+            many=True
+        )
+        serializer_2 = IngredientSerializer(
+            [ingredient_3, ],
+            many=True
+        )
+
+        res = self.client.get(INGREDIENT_URL, {'not_assigned': '1'})
+
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertEqual(serializer_2.data, res.data)
+        self.assertNotIn(serializer_1.data, res.data)
+
+    def test_unique_filtering(self):
+        '''Tests if the ingredients returned by filters are unique'''
+        ingredient_1 = create_ingredient(self.user, 'One')
+
+        recipe = create_recipe(self.user)
+        recipe_2 = create_recipe(self.user, title='another')
+
+        recipe.ingredients.add(ingredient_1)
+        recipe_2.ingredients.add(ingredient_1)
+
+        res = self.client.get(INGREDIENT_URL, {'assigned': '1'})
+
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(res.data), 1)

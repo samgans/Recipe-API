@@ -179,6 +179,51 @@ class PrivateInteraction(TestCase):
         self.assertEqual(recipe.title, payload['title'])
         self.assertEqual(float(recipe.price), payload['price'])
 
+    def test_is_filtered_by_tags(self):
+        '''
+        Tests if the list is filtered by tags when the arguments are
+        passed to the request
+        '''
+        recipe_1 = create_recipe(self.user, title='Test_1')
+        recipe_2 = create_recipe(self.user, title='Test_2')
+        recipe_3 = create_recipe(self.user, title='Test_3')
+
+        tag_1 = create_tag('Tag_1', self.user,)
+        tag_2 = create_tag('Tag_2', self.user)
+        serializer = RecipeSerializer([recipe_2, recipe_1], many=True)
+        serializer_2 = RecipeSerializer(recipe_3)
+
+        recipe_1.tags.add(tag_1)
+        recipe_2.tags.add(tag_2)
+
+        res = self.client.get(RECIPE_URL, {'tags': f'{tag_1.pk}, {tag_2.pk}'})
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertEqual(serializer.data, res.data)
+        self.assertNotIn(serializer_2.data, res.data)
+
+    def test_filtered_by_ingredients(self):
+        '''
+        Tests if recipies are filtered by ingredients if the user passes
+        the arguments in the request
+        '''
+        recipe_1 = create_recipe(self.user, title='Test_1')
+        recipe_2 = create_recipe(self.user, title='Test_2')
+        recipe_3 = create_recipe(self.user, title='Test_3')
+
+        ingr_1 = create_ingredient('Ingr_1', self.user)
+        ingr_2 = create_ingredient('Ingr_2', self.user)
+        serializer = RecipeSerializer([recipe_2, recipe_1], many=True)
+        serializer_2 = RecipeSerializer(recipe_3)
+
+        recipe_1.ingredients.add(ingr_1)
+        recipe_2.ingredients.add(ingr_2)
+
+        res = self.client.get(RECIPE_URL,
+                              {'ingredients': f'{ingr_1.pk}, {ingr_2.pk}'})
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertEqual(serializer.data, res.data)
+        self.assertNotIn(serializer_2.data, res.data)
+
 
 class RecipesImagesTests(TestCase):
 

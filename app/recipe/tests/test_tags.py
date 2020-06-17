@@ -5,10 +5,22 @@ from django.contrib.auth import get_user_model
 from rest_framework.test import APIClient
 from rest_framework import status
 
-from core.models import Tag
+from core.models import Tag, Recipe
 from recipe.serializers import TagSerializer
 
 TAG_URL = reverse('recipe:tags-list')
+
+
+def create_recipe(user, **kwargs):
+
+    payload = {
+        'title': 'Test',
+        'price': 5.00,
+        'owner': user,
+    }
+    payload.update(kwargs)
+
+    return Recipe.objects.create(**payload)
 
 
 def create_user(email='testmail@gmail.com', password='testpassword',
@@ -92,3 +104,59 @@ class PrivateInteraction(TestCase):
         res = self.client.post(TAG_URL, {'name': ''})
 
         self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_can_filter_tags_by_recepies(self):
+        '''Tests if the user can filter tags assigned to recepies'''
+        tag_1 = create_tag(self.user, name='One')
+        tag_2 = create_tag(self.user, name='Two')
+        tag_3 = create_tag(self.user, name='Three')
+
+        recipe = create_recipe(self.user)
+
+        recipe.tags.add(tag_1, tag_2)
+        serializer_1 = TagSerializer([tag_2, tag_1], many=True)
+        serializer_2 = TagSerializer(tag_3)
+
+        res = self.client.get(TAG_URL, {'assigned': '1'})
+
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertEqual(serializer_1.data, res.data)
+        self.assertNotIn(serializer_2.data, res.data)
+
+    def test_can_filter_tags_without_recepies(self):
+        '''
+        Tests if a user can retrieve all tags not assigned to any recepies
+        '''
+        tag_1 = create_tag(self.user, name='One')
+        tag_2 = create_tag(self.user, name='Two')
+        tag_3 = create_tag(self.user, name='Three')
+
+        recipe = create_recipe(self.user)
+
+        recipe.tags.add(tag_1, tag_2)
+        serializer_1 = TagSerializer([tag_2, tag_1], many=True)
+        serializer_2 = TagSerializer(
+            [tag_3, ],
+            many=True
+        )
+
+        res = self.client.get(TAG_URL, {'not_assigned': '1'})
+
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertEqual(serializer_2.data, res.data)
+        self.assertNotIn(serializer_1.data, res.data)
+
+    def test_unique_filtering(self):
+        '''Tests if tags returned by filters are unique'''
+        tag_1 = create_tag(self.user, 'One')
+
+        recipe = create_recipe(self.user)
+        recipe_2 = create_recipe(self.user, title='another')
+
+        recipe.tags.add(tag_1)
+        recipe_2.tags.add(tag_1)
+
+        res = self.client.get(TAG_URL, {'assigned': '1'})
+
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(res.data), 1)

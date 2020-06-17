@@ -6,6 +6,9 @@ from rest_framework.decorators import action
 from rest_framework import status
 
 from core.models import Tag, Ingredient, Recipe
+from core.filters import IsOwnerFilterBackend, RecipeTagsFilterBackend, \
+                         RecipeIngredientsFilterBackend, \
+                         AssignedToRecipeFilterBackend
 from recipe.serializers import TagSerializer, IngredientSerializer, \
                                RecipeSerializer, RecipeDetailSerializer, \
                                RecipeImageSerializer
@@ -17,9 +20,7 @@ class RecipePartsBaseViewSet(mixins.ListModelMixin,
     '''Base viewset for both tags and ingredients'''
     authentication_classes = [TokenAuthentication]
     permission_classes = [IsAuthenticated]
-
-    def get_queryset(self):
-        return self.queryset.filter(owner=self.request.user).order_by('-name')
+    filter_backends = [IsOwnerFilterBackend, AssignedToRecipeFilterBackend]
 
     def perform_create(self, serializer):
         serializer.save(owner=self.request.user)
@@ -27,13 +28,13 @@ class RecipePartsBaseViewSet(mixins.ListModelMixin,
 
 class TagViewSet(RecipePartsBaseViewSet):
     '''Retrieve, update or create new tag'''
-    queryset = Tag.objects.all()
+    queryset = Tag.objects.all().order_by('-name')
     serializer_class = TagSerializer
 
 
 class IngredientViewSet(RecipePartsBaseViewSet):
     '''Retrieve, update or create new ingredient'''
-    queryset = Ingredient.objects.all()
+    queryset = Ingredient.objects.all().order_by('-name')
     serializer_class = IngredientSerializer
 
 
@@ -42,13 +43,12 @@ class RecipeViewSet(viewsets.ModelViewSet):
     authentication_classes = [TokenAuthentication, ]
     permission_classes = [IsAuthenticated, ]
 
-    queryset = Recipe.objects.all()
+    queryset = Recipe.objects.all().order_by('-id')
     serializer_class = RecipeSerializer
-
-    def get_queryset(self):
-        return Recipe.objects.all().filter(
-            owner=self.request.user
-        ).order_by('-id')
+    filter_backends = [
+        IsOwnerFilterBackend, RecipeIngredientsFilterBackend,
+        RecipeTagsFilterBackend,
+    ]
 
     def perform_create(self, serializer):
         serializer.save(owner=self.request.user)
